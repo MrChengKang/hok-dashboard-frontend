@@ -1,3 +1,4 @@
+import { HERO_DATABASE } from "../constants/heroes";
 import { Trophy } from "lucide-react";
 
 function AddMatchModal({ isOpen, onClose, onSave, newData, setNewData }) {
@@ -11,18 +12,78 @@ function AddMatchModal({ isOpen, onClose, onSave, newData, setNewData }) {
         </h2>
 
         <form onSubmit={onSave} className="space-y-4">
-          {/* 英雄名稱 */}
-          <div>
-            <label className="block text-sm text-slate-400 mb-2">
-              英雄名稱
+          {/* 1. 分路選擇 (Filter) */}
+          <div className="mb-4">
+            <label className="text-slate-400 text-[10px] font-black uppercase mb-2 block">
+              Position 分路
             </label>
-            <input
-              required
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-blue-500"
-              value={newData.hero}
-              onChange={(e) => setNewData({ ...newData, hero: e.target.value })}
-              placeholder="例如：李白、韓信..."
-            />
+            <div className="flex flex-wrap gap-2">
+              {["打野", "中路", "對抗路", "發育路", "遊走"].map((pos) => (
+                <button
+                  key={pos}
+                  type="button"
+                  onClick={() =>
+                    setNewData({ ...newData, position: pos, hero: "" })
+                  } // 切換分路時重置英雄
+                  className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs transition-all border ${
+                    newData.position === pos
+                      ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/40"
+                      : "bg-slate-800 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  {pos}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. 英雄列表 (根據目前選的分路過濾) */}
+          {/* --- components/AddMatchModal.jsx 英雄選擇部分 --- */}
+
+          <div className="mb-6">
+            <label className="text-slate-400 text-[10px] font-black uppercase mb-3 block tracking-widest">
+              Select Hero 選擇英雄 ({newData.position})
+            </label>
+            <div className="grid grid-cols-4 gap-3 max-h-56 overflow-y-auto p-3 bg-slate-950/40 rounded-2xl border border-slate-800">
+              {HERO_DATABASE.filter(
+                (h) => h.defaultPos === newData.position,
+              ).map((hero) => {
+                // 🔴 這裡直接使用你在 heroes.js 裡定義的自定義顏色
+                const heroGradient =
+                  hero.color || "from-slate-500 to-slate-800";
+
+                return (
+                  <button
+                    key={hero.name}
+                    type="button"
+                    onClick={() => {
+                      setNewData({ ...newData, hero: hero.name });
+                    }}
+                    className={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl transition-all duration-200 ${
+                      newData.hero === hero.name
+                        ? "bg-blue-600/20 ring-4 ring-blue-500 shadow-lg shadow-blue-900/30 scale-105"
+                        : "hover:bg-slate-800/60"
+                    }`}
+                  >
+                    {/* 🔴 優化的彩色徽章 */}
+                    <div
+                      className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${heroGradient} shadow-lg shadow-black/30 border border-white/10`}
+                    >
+                      {/* 顯示縮寫 initials，加上陰影 */}
+                      <span className="text-white font-black text-xl drop-shadow-md tracking-tighter">
+                        {hero.initials}
+                      </span>
+                    </div>
+                    {/* 英雄名字 */}
+                    <span
+                      className={`text-[11px] font-bold ${newData.hero === hero.name ? "text-white" : "text-slate-300"} truncate w-full text-center`}
+                    >
+                      {hero.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -61,16 +122,73 @@ function AddMatchModal({ isOpen, onClose, onSave, newData, setNewData }) {
             </div>
           </div>
 
-          {/* KDA 數據 */}
-          <div>
-            <label className="block text-sm text-slate-400 mb-2">KDA</label>
-            <input
-              required
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none"
-              value={newData.kda}
-              onChange={(e) => setNewData({ ...newData, kda: e.target.value })}
-              placeholder="0/0/0"
-            />
+          {/* KDA 快速輸入區塊 */}
+          <div className="mb-6">
+            <label className="text-slate-400 text-[10px] font-black uppercase mb-3 block tracking-widest">
+              Performance 戰績數據 (K / D / A)
+            </label>
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "Kills", key: "kills", color: "text-red-400" },
+                { label: "Deaths", key: "deaths", color: "text-slate-400" },
+                { label: "Assists", key: "assists", color: "text-green-400" },
+              ].map((stat) => {
+                // 解析目前的 KDA 數字
+                const kdaArray = newData.kda.split("/");
+                const val =
+                  stat.key === "kills"
+                    ? kdaArray[0]
+                    : stat.key === "deaths"
+                      ? kdaArray[1]
+                      : kdaArray[2];
+
+                const updateVal = (newVal) => {
+                  const finalVal = Math.max(0, newVal); // 確保不會變負數
+                  let newKda = [...kdaArray];
+                  if (stat.key === "kills") newKda[0] = finalVal;
+                  if (stat.key === "deaths") newKda[1] = finalVal;
+                  if (stat.key === "assists") newKda[2] = finalVal;
+                  setNewData({ ...newData, kda: newKda.join("/") });
+                };
+
+                return (
+                  <div
+                    key={stat.key}
+                    className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800 text-center"
+                  >
+                    <p
+                      className={`text-[10px] font-bold uppercase mb-2 ${stat.color}`}
+                    >
+                      {stat.label}
+                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateVal(parseInt(val) - 1)}
+                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center font-bold"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        value={val}
+                        onChange={(e) =>
+                          updateVal(parseInt(e.target.value) || 0)
+                        }
+                        className="w-full bg-transparent text-center font-black text-xl outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateVal(parseInt(val) + 1)}
+                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex gap-3 mt-8">

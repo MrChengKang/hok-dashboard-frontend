@@ -1,0 +1,66 @@
+
+export const HERO_DATABASE = [
+  // --- 打野 (Jungler) ---
+  { name: "韓信", initials: "HX", color: "from-red-500 to-red-700", defaultPos: "打野" },
+  { name: "李白", initials: "LB", color: "from-orange-500 to-red-600", defaultPos: "打野" },
+  { name: "百里玄策", initials: "XC", color: "from-rose-500 to-rose-700", defaultPos: "打野" },
+  { name: "猴子", initials: "HZ", color: "from-amber-600 to-orange-700", defaultPos: "打野" },
+  { name: "雲中君", initials: "YZ", color: "from-cyan-400 to-blue-500", defaultPos: "打野" },
+  { name: "裴擒虎", initials: "QH", color: "from-yellow-600 to-amber-700", defaultPos: "打野" },
+  { name: "趙雲", initials: "ZY", color: "from-blue-500 to-indigo-700", defaultPos: "打野" },
+  { name: "娜可露露", initials: "NK", color: "from-red-400 to-rose-600", defaultPos: "打野" },
+  { name: "露娜", initials: "LN", color: "from-indigo-400 to-purple-600", defaultPos: "打野" },
+  { name: "宮本武藏", initials: "GB", color: "from-slate-600 to-slate-800", defaultPos: "打野" },
+  { name: "典韋", initials: "DW", color: "from-red-700 to-red-900", defaultPos: "打野" },
+  { name: "大司命", initials: "DS", color: "from-purple-600 to-indigo-900", defaultPos: "打野" },
+
+  // --- 中路 (Mid) ---
+  { name: "貂蟬", initials: "DC", color: "from-purple-400 to-purple-600", defaultPos: "中路" },
+  { name: "諸葛亮", initials: "ZG", color: "from-blue-400 to-indigo-600", defaultPos: "中路" },
+  { name: "上官婉兒", initials: "WE", color: "from-slate-700 to-slate-900", defaultPos: "中路" },
+  { name: "小喬", initials: "XQ", color: "from-pink-400 to-rose-500", defaultPos: "中路" },
+  { name: "妲己", initials: "DJ", color: "from-pink-500 to-pink-700", defaultPos: "中路" },
+  { name: "安琪拉", initials: "AQ", color: "from-orange-500 to-red-600", defaultPos: "中路" },
+  { name: "甄姬", initials: "ZJ", color: "from-blue-300 to-blue-500", defaultPos: "中路" },
+  { name: "王昭君", initials: "WZ", color: "from-cyan-200 to-blue-400", defaultPos: "中路" },
+  { name: "不知火舞", initials: "HW", color: "from-red-500 to-orange-600", defaultPos: "中路" },
+  { name: "米萊狄", initials: "ML", color: "from-amber-700 to-yellow-900", defaultPos: "中路" },
+  { name: "干將莫邪", initials: "GJ", color: "from-indigo-600 to-slate-800", defaultPos: "中路" },
+  { name: "奕星", initials: "YX", color: "from-slate-400 to-slate-600", defaultPos: "中路" },
+
+  // --- 對抗路 (Clash) ---
+  { name: "李信", initials: "LX", color: "from-orange-400 to-amber-600", defaultPos: "對抗路" },
+  { name: "呂布", initials: "LB", color: "from-slate-600 to-purple-900", defaultPos: "對抗路" },
+  { name: "鎧", initials: "KAI", color: "from-blue-600 to-cyan-800", defaultPos: "對抗路" },
+  { name: "亞瑟", initials: "YS", color: "from-blue-700 to-amber-500", defaultPos: "對抗路" },
+  { name: "花木蘭", initials: "HM", color: "from-pink-600 to-orange-600", defaultPos: "對抗路" },
+  { name: "關羽", initials: "GY", color: "from-green-700 to-emerald-900", defaultPos: "對抗路" },
+  { name: "老夫子", initials: "LF", color: "from-amber-500 to-orange-700", defaultPos: "對抗路" },
+  { name: "孫策", initials: "SC", color: "from-blue-400 to-blue-600", defaultPos: "對抗路" },
+  { name: "狂鐵", initials: "KT", color: "from-yellow-500 to-indigo-600", defaultPos: "對抗路" },
+  { name: "元歌", initials: "YG", color: "from-slate-400 to-slate-800", defaultPos: "對抗路" },
+
+  // --- 發育路 (Farm) ---
+  { name: "公孫離", initials: "GL", color: "from-yellow-400 to-orange-500", defaultPos: "發育路" },
+  { name: "馬可波羅", initials: "MK", color: "from-slate-500 to-amber-600", defaultPos: "發育路" },
+  { name: "孫尚香", initials: "SS", color: "from-green-500 to-emerald-700", defaultPos: "發育路" },
+  { name: "魯班七號", initials: "LB", color: "from-orange-400 to-red-500", defaultPos: "發育路" },
+  { name: "后羿", initials: "HY", color: "from-yellow-500 to-orange-600", defaultPos: "發育路" },
+  { name: "虞姬", initials: "YJ", color: "from-emerald-400 to-green-600", defaultPos: "發育路" },
+  { name: "狄仁傑", initials: "DR", color: "from-blue-500 to-red-500", defaultPos: "發育路" },
+  { name: "伽羅", initials: "JL", color: "from-blue-300 to-indigo-500", defaultPos: "發育路" },
+  { name: "百里守約", initials: "SY", color: "from-slate-400 to-blue-600", defaultPos: "發育路" },
+  { name: "敖隱", initials: "AY", color: "from-cyan-300 to-white", defaultPos: "發育路" },
+
+  // --- 遊走 (Support) ---
+  { name: "大喬", initials: "DQ", color: "from-teal-400 to-emerald-600", defaultPos: "遊走" },
+  { name: "瑤", initials: "YAO", color: "from-pink-300 to-teal-400", defaultPos: "遊走" },
+  { name: "蔡文姬", initials: "CW", color: "from-green-300 to-emerald-500", defaultPos: "遊走" },
+  { name: "東皇太一", initials: "DH", color: "from-slate-800 to-purple-900", defaultPos: "遊走" },
+  { name: "鬼谷子", initials: "GG", color: "from-green-600 to-emerald-800", defaultPos: "遊走" },
+  { name: "張飛", initials: "ZF", color: "from-red-600 to-orange-800", defaultPos: "遊走" },
+  { name: "牛魔", initials: "NM", color: "from-orange-800 to-slate-900", defaultPos: "遊走" },
+  { name: "盾山", initials: "DS", color: "from-slate-500 to-blue-700", defaultPos: "遊走" },
+  { name: "魯班大師", initials: "LB", color: "from-blue-400 to-slate-600", defaultPos: "遊走" },
+  { name: "朵莉亞", initials: "DL", color: "from-cyan-400 to-blue-400", defaultPos: "遊走" },
+];

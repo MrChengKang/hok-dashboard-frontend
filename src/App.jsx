@@ -4,7 +4,6 @@ import AuthPage from "./components/AuthPage";
 
 const formatRelativeTime = (dateValue, now) => {
   if (!dateValue || dateValue === "Just now") return "Just now";
-
   let past;
   if (Array.isArray(dateValue)) {
     past = new Date(
@@ -16,25 +15,16 @@ const formatRelativeTime = (dateValue, now) => {
       dateValue[5] || 0,
     );
   } else {
-    // 🔴 終極修復：強制加上 'T' 與馬來西亞時區 '+08:00'
     let safeStr = dateValue;
     if (typeof safeStr === "string") {
-      safeStr = safeStr.replace(" ", "T"); // 替換空格防 Safari 報錯
-      if (!safeStr.includes("+")) {
-        safeStr += "+08:00"; // 強制鎖定為馬來西亞時間
-      }
+      safeStr = safeStr.replace(" ", "T");
+      if (!safeStr.includes("+")) safeStr += "+08:00";
     }
     past = new Date(safeStr);
   }
-
   if (isNaN(past.getTime())) return "Just now";
-
-  // 計算秒數差
   const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-  // 如果時間差是負數（未來時間）或小於 60 秒，一律顯示 Just now
   if (diffInSeconds < 60) return "Just now";
-
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
   const diffInHours = Math.floor(diffInMinutes / 60);
@@ -43,6 +33,9 @@ const formatRelativeTime = (dateValue, now) => {
 };
 
 function App() {
+  // ==========================================
+  // 1. useState (狀態定義都在最頂層)
+  // ==========================================
   const [matches, setMatches] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -51,9 +44,10 @@ function App() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
-
-  // 每分鐘更新一次，讓列表中的時間自動跳動
+  const [selectedPosition, setSelectedPosition] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
 
   const [newMatchData, setNewMatchData] = useState({
     hero: "",
@@ -63,7 +57,11 @@ function App() {
     position: "打野",
   });
 
-  // 1. 頁面載入檢查
+  // ==========================================
+  // 2. useEffect (必須在任何 return 之前執行)
+  // ==========================================
+
+  // 檢查登錄狀態
   useEffect(() => {
     const savedUser = localStorage.getItem("hok_user");
     if (savedUser) {
@@ -73,15 +71,27 @@ function App() {
     setIsLoading(false);
   }, []);
 
-  // 2. 定時器：讓相對時間每分鐘重算一次
+  // 更新相對時間的計時器
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // 3. 抓取資料
+  // 🔴 修正黑屏的關鍵：分頁校正 Hook 必須放在這裡
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedPosition]);
+
+  // 抓取數據 Hook
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      fetchMatches();
+    }
+  }, [isLoggedIn, currentUser]);
+
+  // ==========================================
+  // 3. 邏輯函式
+  // ==========================================
   const fetchMatches = () => {
     if (!currentUser) return;
     fetch(`http://localhost:8080/api/matches?username=${currentUser}`)
@@ -90,13 +100,6 @@ function App() {
       .catch((err) => console.error("抓取失敗:", err));
   };
 
-  useEffect(() => {
-    if (isLoggedIn && currentUser) {
-      fetchMatches();
-    }
-  }, [isLoggedIn, currentUser]);
-
-  // 🔴 幫你補齊遺失的編輯按鈕函式！
   const handleEditClick = (match) => {
     setEditingId(match.id);
     setNewMatchData({
@@ -109,21 +112,22 @@ function App() {
     setIsModalOpen(true);
   };
 
-  // 4. 儲存戰績
   const handleSaveMatch = async (e) => {
     e.preventDefault();
+    if (!newMatchData.hero || newMatchData.hero.trim() === "") {
+      alert("⚠️ 請先選擇一位英雄！");
+      return;
+    }
     const method = editingId ? "PUT" : "POST";
     const url = editingId
       ? `http://localhost:8080/api/matches/${editingId}`
       : "http://localhost:8080/api/matches";
-
     try {
       const response = await fetch(url, {
-        method: method,
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...newMatchData, username: currentUser }),
       });
-
       if (response.ok) {
         setIsModalOpen(false);
         setEditingId(null);
@@ -141,7 +145,6 @@ function App() {
     }
   };
 
-  // 5. 刪除戰績
   const deleteMatch = (id) => {
     if (window.confirm("確定要刪除這場戰績嗎？")) {
       fetch(`http://localhost:8080/api/matches/${id}`, {
@@ -150,9 +153,11 @@ function App() {
     }
   };
 
+  // ==========================================
+  // 4. 條件渲染 (在所有 Hook 之後)
+  // ==========================================
   if (isLoading) return <div className="min-h-screen bg-[#020617]"></div>;
-
-  if (!isLoggedIn) {
+  if (!isLoggedIn)
     return (
       <AuthPage
         onLoginSuccess={(name) => {
@@ -162,16 +167,16 @@ function App() {
         }}
       />
     );
-  }
 
-  // 統計邏輯
+  // ==========================================
+  // 5. 數據計算
+  // ==========================================
   const totalMatches = matches.length;
   const wins = matches.filter(
     (m) => m.result === "Victory" || m.result === "MVP",
   ).length;
   const winRate =
     totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : 0;
-
   const avgKda =
     matches.length > 0
       ? (
@@ -182,29 +187,58 @@ function App() {
         ).toFixed(1)
       : "0.0";
 
-  const filteredMatches = matches.filter(
-    (match) =>
+  const filteredMatches = matches.filter((match) => {
+    const matchesSearch =
       match.hero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      match.position.toLowerCase().includes(searchTerm.toLowerCase()),
+      match.position.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPosition = selectedPosition
+      ? match.position === selectedPosition
+      : true;
+    return matchesSearch && matchesPosition;
+  });
+
+  const totalPages = Math.ceil(filteredMatches.length / itemsPerPage);
+  const currentItems = filteredMatches.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
   );
 
+  const positionStats = matches.reduce((acc, curr) => {
+    const pos = curr.position || "未知";
+    if (!acc[pos]) acc[pos] = { total: 0, wins: 0 };
+    acc[pos].total += 1;
+    if (curr.result === "Victory" || curr.result === "MVP") acc[pos].wins += 1;
+    return acc;
+  }, {});
+
+  const positionColors = {
+    打野: "bg-red-500",
+    中路: "bg-purple-500",
+    對抗路: "bg-orange-500",
+    發育路: "bg-yellow-500",
+    遊走: "bg-green-500",
+  };
+
+  // ==========================================
+  // 6. 畫面渲染 (JSX)
+  // ==========================================
   return (
     <div className="min-h-screen bg-[#0f172a] p-8 text-white">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="max-w-7xl mx-auto flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-3xl font-black text-blue-400 tracking-tighter">
+          <h1 className="text-4xl font-black text-blue-400 tracking-tighter italic">
             HOK DASHBOARD
           </h1>
-          <p className="text-slate-400 text-sm">
-            歡迎回來{" "}
+          <p className="text-slate-400 text-sm mt-1">
+            Player:{" "}
             <span className="text-blue-300 font-bold">{currentUser}</span>
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           <button
             onClick={() => {
-              setEditingId(null); // 確保新增時是空表單
+              setEditingId(null);
               setNewMatchData({
                 hero: "",
                 game: "Honor of Kings",
@@ -214,13 +248,13 @@ function App() {
               });
               setIsModalOpen(true);
             }}
-            className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full font-bold shadow-lg"
+            className="bg-blue-600 hover:bg-blue-500 px-8 py-2.5 rounded-full font-bold shadow-lg shadow-blue-900/20 transition-all"
           >
-            + 記錄新戰績
+            + New Record
           </button>
           <button
             onClick={() => setIsLogoutModalOpen(true)}
-            className="bg-slate-800 hover:bg-red-500/20 text-slate-400 px-4 py-2 rounded-full font-bold text-sm"
+            className="bg-slate-800 hover:bg-red-500/20 text-slate-400 px-5 py-2.5 rounded-full font-bold text-sm"
           >
             Logout
           </button>
@@ -228,100 +262,225 @@ function App() {
       </div>
 
       {/* 統計卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl">
-          <p className="text-slate-400 text-xs font-bold uppercase mb-2">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl text-center">
+          <p className="text-slate-500 text-[10px] font-black uppercase mb-1 tracking-widest">
             Total Matches
           </p>
           <span className="text-4xl font-black">{totalMatches}</span>
         </div>
-        <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl">
-          <p className="text-slate-400 text-xs font-bold uppercase mb-2">
+        <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl relative overflow-hidden text-center">
+          <p className="text-slate-500 text-[10px] font-black uppercase mb-1 tracking-widest">
             Win Rate
           </p>
           <span className="text-4xl font-black text-blue-400">{winRate}%</span>
+          <div className="absolute bottom-0 left-0 h-1 bg-slate-700 w-full">
+            <div
+              className="h-full bg-blue-500 transition-all duration-1000"
+              style={{ width: `${winRate}%` }}
+            ></div>
+          </div>
         </div>
-        <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl">
-          <p className="text-slate-400 text-xs font-bold uppercase mb-2">
+        <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl text-center">
+          <p className="text-slate-500 text-[10px] font-black uppercase mb-1 tracking-widest">
             Avg KDA
           </p>
           <span className="text-4xl font-black text-yellow-500">{avgKda}</span>
         </div>
       </div>
 
-      {/* 搜尋 */}
-      <div className="mb-6 relative">
-        <input
-          type="text"
-          placeholder="搜尋英雄名稱或分路..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-slate-800/40 border border-slate-700 p-4 pl-12 rounded-2xl outline-none focus:border-blue-500 text-white"
-        />
-        <span className="absolute left-4 top-4">🔍</span>
-      </div>
-
-      {/* 戰績列表 */}
-      <div className="flex flex-col gap-4">
-        {filteredMatches.length > 0 ? (
-          filteredMatches.map((match) => (
-            <div
-              key={match.id}
-              className={`group relative bg-slate-800 p-6 rounded-2xl flex justify-between items-center border-l-4 transition-all hover:scale-[1.01] ${match.result === "Defeat" ? "border-l-red-500" : "border-l-blue-500"}`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-slate-700 to-slate-600 rounded-full flex items-center justify-center text-2xl font-bold">
-                  {match.hero ? match.hero[0] : "?"}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-blue-500/10 text-blue-400 text-[10px] font-black px-2 py-0.5 rounded uppercase">
-                      {match.position}
-                    </span>
-                    <span className="text-slate-500 text-xs">
-                      {/* 🔴 統一使用 createdAt */}
-                      {formatRelativeTime(
-                        match.createdAt || match.created_at,
-                        currentTime,
-                      )}
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-black mt-1">{match.hero}</h3>
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <div className="text-3xl font-black text-white">
-                    {match.kda}
-                  </div>
-                  <div
-                    className={`font-bold text-xs uppercase ${match.result === "MVP" ? "text-yellow-400" : "text-blue-400"}`}
-                  >
-                    {match.result}
-                  </div>
-                </div>
-                <div className="flex gap-2">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 左側邊欄 */}
+        <div className="lg:col-span-4 lg:sticky lg:top-8 flex flex-col gap-6">
+          <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl">
+            <h3 className="text-slate-400 text-xs font-black uppercase mb-6 flex items-center gap-2 tracking-widest">
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+              Position Stats
+            </h3>
+            <div className="flex flex-col gap-3">
+              {["打野", "中路", "對抗路", "發育路", "遊走"].map((pos) => {
+                const stats = positionStats[pos] || { total: 0, wins: 0 };
+                const rate =
+                  stats.total > 0
+                    ? ((stats.wins / stats.total) * 100).toFixed(0)
+                    : 0;
+                const isActive = selectedPosition === pos;
+                return (
                   <button
-                    onClick={() => handleEditClick(match)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-blue-400 p-2 transition-all"
+                    key={pos}
+                    onClick={() => setSelectedPosition(isActive ? null : pos)}
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${isActive ? "bg-blue-600 border-blue-400 shadow-lg" : "bg-slate-900/50 border-slate-800 hover:border-slate-600"}`}
                   >
-                    ✎
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full ${positionColors[pos]}`}
+                      ></div>
+                      <span
+                        className={`font-bold ${isActive ? "text-white" : "text-slate-300"}`}
+                      >
+                        {pos}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black block text-sm">{rate}%</span>
+                      <span className="text-[10px] text-slate-500">
+                        {stats.wins}W / {stats.total}T
+                      </span>
+                    </div>
                   </button>
-                  <button
-                    onClick={() => deleteMatch(match.id)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-500 p-2 transition-all"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
+                );
+              })}
             </div>
-          ))
-        ) : (
-          <div className="text-center py-20 text-slate-500 bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-700">
-            目前沒有戰績記錄
           </div>
-        )}
+        </div>
+
+        {/* 右側列表 */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className="relative group">
+            <input
+              type="text"
+              placeholder="搜尋英雄名稱或分路..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-800/40 border border-slate-700/50 p-5 pl-14 rounded-3xl outline-none focus:border-blue-500 focus:bg-slate-800/60 transition-all text-white placeholder-slate-600"
+            />
+            <span className="absolute left-6 top-5 text-xl opacity-50 group-focus-within:opacity-100 transition-opacity">
+              🔍
+            </span>
+            {selectedPosition && (
+              <div className="absolute right-4 top-3.5">
+                <button
+                  onClick={() => setSelectedPosition(null)}
+                  className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-3 py-1.5 rounded-full border border-blue-500/50 hover:bg-blue-600/40"
+                >
+                  {selectedPosition} ✕
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {currentItems.length > 0 ? (
+              currentItems.map((match) => {
+                // 🔴 新增：根據分路設定不同的漸層顏色
+                const avatarGradients = {
+                  打野: "from-red-500 to-red-800",
+                  中路: "from-purple-500 to-purple-800",
+                  對抗路: "from-orange-400 to-orange-700",
+                  發育路: "from-yellow-400 to-yellow-700",
+                  遊走: "from-green-400 to-green-700",
+                  未知: "from-slate-500 to-slate-800",
+                };
+                const bgGradient =
+                  avatarGradients[match.position] || avatarGradients["未知"];
+
+                return (
+                  <div
+                    key={match.id}
+                    className={`group relative bg-slate-800/50 p-6 rounded-3xl flex justify-between items-center border border-slate-700/50 transition-all hover:border-blue-500/50 hover:bg-slate-800 ${match.result === "Defeat" ? "border-l-4 border-l-red-500" : "border-l-4 border-l-blue-500"}`}
+                  >
+                    <div className="flex items-center gap-5">
+                      {/* 動態漸層背景 */}
+                      <div
+                        className={`
+    w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-black text-white 
+    shadow-lg shadow-black/40 border border-white/10
+    bg-gradient-to-br ${
+      match.position === "打野"
+        ? "from-red-500 to-red-800"
+        : match.position === "中路"
+          ? "from-purple-500 to-purple-800"
+          : match.position === "對抗路"
+            ? "from-orange-400 to-orange-700"
+            : match.position === "發育路"
+              ? "from-yellow-400 to-yellow-700"
+              : "from-green-500 to-green-800"
+    }
+  `}
+                      >
+                        <span className="drop-shadow-md">
+                          {match.hero ? match.hero[0] : "?"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-slate-700 text-slate-300 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+                            {match.position}
+                          </span>
+                          <span className="text-slate-500 text-[10px] font-bold">
+                            {formatRelativeTime(
+                              match.createdAt || match.created_at,
+                              currentTime,
+                            )}
+                          </span>
+                        </div>
+                        <h3 className="text-2xl font-black">{match.hero}</h3>
+                      </div>
+                    </div>
+
+                    {/* ... 右側的 KDA 和操作按鈕保持不變 ... */}
+                    <div className="flex items-center gap-8">
+                      <div className="text-right">
+                        <div className="text-3xl font-black tracking-tighter text-white">
+                          {match.kda}
+                        </div>
+                        <div
+                          className={`font-black text-[10px] uppercase tracking-[0.2em] ${match.result === "MVP" ? "text-yellow-400" : match.result === "Victory" ? "text-blue-400" : "text-red-400"}`}
+                        >
+                          {match.result}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => handleEditClick(match)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-blue-400 p-2 transition-all"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => deleteMatch(match.id)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-500 p-2 transition-all"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-20 text-slate-500 bg-slate-800/20 rounded-3xl border-2 border-dashed border-slate-800">
+                No match records found.
+              </div>
+            )}
+          </div>
+
+          {/* 分頁控制 */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all ${currentPage === 1 ? "bg-slate-800 text-slate-600" : "bg-slate-700 hover:bg-blue-600 text-white shadow-lg"}`}
+              >
+                ←
+              </button>
+              <div className="bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700 flex items-center gap-2">
+                <span className="text-blue-400 font-black">{currentPage}</span>
+                <span className="text-slate-600">/</span>
+                <span className="text-slate-400 font-bold">{totalPages}</span>
+              </div>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all ${currentPage === totalPages ? "bg-slate-800 text-slate-600" : "bg-slate-700 hover:bg-blue-600 text-white shadow-lg"}`}
+              >
+                →
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <AddMatchModal
