@@ -4,6 +4,40 @@ import { Trophy } from "lucide-react";
 function AddMatchModal({ isOpen, onClose, onSave, newData, setNewData }) {
   if (!isOpen) return null;
 
+  const handleKdaUpdate = (index, newVal) => {
+    const kdaArray = newData.kda.split("/");
+    const value = Math.max(0, newVal);
+    const newKdaArray = [...kdaArray];
+    newKdaArray[index] = value;
+
+    const kills = parseInt(newKdaArray[0]) || 0;
+    const deaths = parseInt(newKdaArray[1]) || 0;
+    const assists = parseInt(newKdaArray[2]) || 0;
+
+    // 調整 MVP 門檻：(K+A)/D >= 3 且擊殺 >= 3
+    const kdaScore = (kills + assists) / Math.max(1, deaths);
+    const isExcellent = kdaScore >= 3 && kills >= 3;
+
+    const updatedKdaStr = newKdaArray.join("/");
+    let finalResult = newData.result;
+
+    // 智能判斷：如果是 Victory 且表現好 -> MVP；如果表現變差 -> Victory
+    if (
+      isExcellent &&
+      (newData.result === "Victory" || newData.result === "MVP")
+    ) {
+      finalResult = "MVP";
+    } else if (!isExcellent && newData.result === "MVP") {
+      finalResult = "Victory";
+    }
+
+    setNewData({
+      ...newData,
+      kda: updatedKdaStr,
+      result: finalResult,
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 p-8 rounded-3xl w-full max-w-md shadow-2xl">
@@ -123,64 +157,57 @@ function AddMatchModal({ isOpen, onClose, onSave, newData, setNewData }) {
           </div>
 
           {/* KDA 快速輸入區塊 */}
+          {/* KDA 快速輸入區塊 */}
           <div className="mb-6">
             <label className="text-slate-400 text-[10px] font-black uppercase mb-3 block tracking-widest">
               Performance 戰績數據 (K / D / A)
             </label>
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: "Kills", key: "kills", color: "text-red-400" },
-                { label: "Deaths", key: "deaths", color: "text-slate-400" },
-                { label: "Assists", key: "assists", color: "text-green-400" },
+                { label: "Kills", index: 0, color: "text-red-400" },
+                { label: "Deaths", index: 1, color: "text-slate-400" },
+                { label: "Assists", index: 2, color: "text-green-400" },
               ].map((stat) => {
-                // 解析目前的 KDA 數字
                 const kdaArray = newData.kda.split("/");
-                const val =
-                  stat.key === "kills"
-                    ? kdaArray[0]
-                    : stat.key === "deaths"
-                      ? kdaArray[1]
-                      : kdaArray[2];
-
-                const updateVal = (newVal) => {
-                  const finalVal = Math.max(0, newVal); // 確保不會變負數
-                  let newKda = [...kdaArray];
-                  if (stat.key === "kills") newKda[0] = finalVal;
-                  if (stat.key === "deaths") newKda[1] = finalVal;
-                  if (stat.key === "assists") newKda[2] = finalVal;
-                  setNewData({ ...newData, kda: newKda.join("/") });
-                };
+                const currentVal = parseInt(kdaArray[stat.index]) || 0;
 
                 return (
                   <div
-                    key={stat.key}
-                    className="bg-slate-900/50 p-3 rounded-2xl border border-slate-800 text-center"
+                    key={stat.label}
+                    className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800 text-center"
                   >
                     <p
-                      className={`text-[10px] font-bold uppercase mb-2 ${stat.color}`}
+                      className={`text-[10px] font-black uppercase mb-2 ${stat.color}`}
                     >
                       {stat.label}
                     </p>
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-1">
                       <button
                         type="button"
-                        onClick={() => updateVal(parseInt(val) - 1)}
-                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center font-bold"
+                        onClick={() =>
+                          handleKdaUpdate(stat.index, currentVal - 1)
+                        } // 🔴 改用這個
+                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-red-500/20 text-white font-black transition-all"
                       >
                         -
                       </button>
                       <input
                         type="number"
-                        value={val}
+                        value={currentVal}
                         onChange={(e) =>
-                          updateVal(parseInt(e.target.value) || 0)
-                        }
-                        className="w-full bg-transparent text-center font-black text-xl outline-none"
+                          handleKdaUpdate(
+                            stat.index,
+                            parseInt(e.target.value) || 0,
+                          )
+                        } // 🔴 改用這個
+                        className="w-full bg-transparent text-center font-black text-xl outline-none text-white"
                       />
                       <button
                         type="button"
-                        onClick={() => updateVal(parseInt(val) + 1)}
-                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center font-bold"
+                        onClick={() =>
+                          handleKdaUpdate(stat.index, currentVal + 1)
+                        } // 🔴 改用這個
+                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-blue-500/20 text-white font-black transition-all"
                       >
                         +
                       </button>

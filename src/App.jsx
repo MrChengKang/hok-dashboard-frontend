@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import AddMatchModal from "./components/AddMatchModal";
 import AuthPage from "./components/AuthPage";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts";
 
 const formatRelativeTime = (dateValue, now) => {
   if (!dateValue || dateValue === "Just now") return "Just now";
@@ -219,6 +230,45 @@ function App() {
     遊走: "bg-green-500",
   };
 
+  const heroStats = matches.reduce((acc, curr) => {
+    const name = curr.hero || "未知";
+    if (!acc[name])
+      acc[name] = { name, total: 0, wins: 0, position: curr.position };
+    acc[name].total += 1;
+    if (curr.result === "Victory" || curr.result === "MVP") acc[name].wins += 1;
+    return acc;
+  }, {});
+
+  const topHeroes = Object.values(heroStats)
+    .sort((a, b) => b.wins - a.wins || b.total - a.total)
+    .slice(0, 3);
+
+  const trendData = [...matches]
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt || a.created_at) -
+        new Date(b.createdAt || b.created_at),
+    )
+
+    .slice(-7)
+
+    .map((m) => {
+      const [k, d, a] = m.kda.split("/").map(Number);
+      const score = parseFloat(((k + a) / Math.max(1, d)).toFixed(1));
+      return {
+        name: m.hero ? m.hero[0] : "?",
+        kda: score,
+        fullHero: m.hero,
+      };
+    });
+
+  const bestRole =
+    Object.keys(positionStats).length > 0
+      ? Object.keys(positionStats).reduce((a, b) =>
+          positionStats[a]?.wins > positionStats[b]?.wins ? a : b,
+        )
+      : "N/A";
+
   // ==========================================
   // 6. 畫面渲染 (JSX)
   // ==========================================
@@ -289,6 +339,99 @@ function App() {
         </div>
       </div>
 
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        {/* 最近 7 場 KDA 走勢圖 */}
+        <div className="lg:col-span-2 bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl h-[300px]">
+          <h3 className="text-slate-400 text-xs font-black uppercase mb-6 flex items-center gap-2 tracking-widest">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Recent Performance (KDA Trend)
+          </h3>
+          <div className="w-full h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData}>
+                <defs>
+                  <linearGradient id="colorKda" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#1e293b"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="name"
+                  stroke="#64748b"
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid #334155",
+                    borderRadius: "12px",
+                  }}
+                  itemStyle={{ color: "#3b82f6", fontWeight: "bold" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="kda"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorKda)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 分路熱度分析 (小提示) */}
+        <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl flex flex-col justify-between">
+          <div>
+            <h3 className="text-slate-400 text-xs font-black uppercase mb-4 tracking-widest">
+              Stats Summary
+            </h3>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              你在{" "}
+              <span className="text-blue-400 font-bold">
+                {selectedPosition || "所有分路"}
+              </span>{" "}
+              的表現
+              {winRate > 60 ? "非常強勢！🔥" : "還有提升空間，加油！⚔️"}
+            </p>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-slate-700/50">
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-[10px] text-slate-500 font-bold uppercase">
+                  Best Role
+                </p>
+                <p className="text-xl font-black text-white">
+                  {Object.keys(positionStats).reduce(
+                    (a, b) =>
+                      positionStats[a]?.wins > positionStats[b]?.wins ? a : b,
+                    "N/A",
+                  )}
+                </p>
+              </div>
+              <div className="text-right text-blue-400 font-black text-xs">
+                RANKED PRO ANALYTICS
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* 左側邊欄 */}
         <div className="lg:col-span-4 lg:sticky lg:top-8 flex flex-col gap-6">
@@ -330,6 +473,84 @@ function App() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* 🏆 最強英雄排行榜 Top Heroes */}
+          <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl mt-6">
+            <h3 className="text-slate-400 text-xs font-black uppercase mb-6 flex items-center gap-2 tracking-widest">
+              <span className="text-yellow-500">👑</span>
+              Top Heroes 最強英雄
+            </h3>
+
+            <div className="flex flex-col gap-4">
+              {topHeroes.length > 0 ? (
+                topHeroes.map((hero, index) => {
+                  const winRate = ((hero.wins / hero.total) * 100).toFixed(0);
+                  const medalColors = [
+                    "text-yellow-400",
+                    "text-slate-300",
+                    "text-orange-500",
+                  ];
+
+                  // 🔴 加入分路專屬漸層色邏輯
+                  const badgeGradients = {
+                    打野: "from-red-500 to-red-800",
+                    中路: "from-purple-500 to-purple-800",
+                    對抗路: "from-orange-400 to-orange-700",
+                    發育路: "from-yellow-400 to-yellow-700",
+                    遊走: "from-green-400 to-green-700",
+                    未知: "from-slate-500 to-slate-800",
+                  };
+                  const bgGradient =
+                    badgeGradients[hero.position] || badgeGradients["未知"];
+
+                  return (
+                    <div
+                      key={hero.name}
+                      className="flex items-center justify-between group transition-all hover:translate-x-1"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* 名次數字 */}
+                        <span
+                          className={`text-lg font-black w-4 ${medalColors[index] || "text-slate-500"}`}
+                        >
+                          {index + 1}
+                        </span>
+
+                        {/* 🔴 改造成彩色小徽章 */}
+                        <div
+                          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${bgGradient} flex items-center justify-center font-black text-sm text-white shadow-lg shadow-black/20 border border-white/10`}
+                        >
+                          <span className="drop-shadow-sm">{hero.name[0]}</span>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors">
+                            {hero.name}
+                          </p>
+                          <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">
+                            {hero.position}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-sm font-black text-blue-400">
+                          {winRate}%
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          {hero.wins}W / {hero.total}T
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-center text-slate-600 text-xs py-4 italic">
+                  No Stats Yet
+                </p>
+              )}
             </div>
           </div>
         </div>
