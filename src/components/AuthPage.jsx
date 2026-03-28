@@ -153,108 +153,154 @@ export default function AuthPage({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020617] p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[#020617] p-4 relative overflow-hidden font-sans">
+      {/* 🔴 新增：背景流光效果 */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse"></div>
+
+      {/* 訊息彈窗提示 */}
       {msg.text && (
         <div
-          className={`fixed top-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl font-bold z-50 animate-bounce ${msg.type === "success" ? "bg-green-500" : "bg-red-500"} text-white shadow-2xl`}
+          className={`fixed top-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl font-black z-50 animate-in fade-in zoom-in slide-in-from-top-4 duration-300 ${msg.type === "success" ? "bg-blue-600 shadow-blue-900/40" : "bg-red-500 shadow-red-900/40"} text-white shadow-2xl border border-white/10`}
         >
           {msg.text}
         </div>
       )}
 
-      <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-white relative z-10">
-        <h2 className="text-3xl font-black mb-6 text-blue-400">
-          {isReset ? "Reset" : isLogin ? "Login" : "Register"}
-        </h2>
+      {/* 登入框容器：加入毛玻璃效果 */}
+      <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-10 rounded-[40px] w-full max-w-md shadow-2xl text-white relative z-10">
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-black text-blue-400 italic tracking-tighter mb-1">
+            {isReset ? "RESET" : isLogin ? "LOGIN" : "REGISTER"}
+          </h2>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">
+            HOK Dashboard Access
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
-            placeholder="Username"
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            required
-          />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Username */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">
+              Player Username
+            </label>
+            <input
+              className="w-full bg-slate-950/50 border border-slate-800 p-4 rounded-2xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+              placeholder="輸入玩家名稱"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              required
+            />
+          </div>
 
+          {/* Email & Send Code (僅在註冊/重設密碼時顯示) */}
           {(!isLogin || isReset) && (
-            <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-              <input
-                className="flex-1 bg-slate-950 border border-slate-800 p-3 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
-                placeholder="Email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required={!isLogin || isReset}
-              />
-              <button
-                type="button"
-                onClick={handleSendOtp}
-                disabled={countdown > 0}
-                className={`px-4 rounded-xl text-xs font-bold transition-all ${countdown > 0 ? "bg-slate-700 text-slate-400" : "bg-blue-600 hover:bg-blue-500"}`}
-              >
-                {countdown > 0 ? `${countdown}s` : "Send"}
-              </button>
+            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+              <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">
+                Verify Email
+              </label>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 bg-slate-950/50 border border-slate-800 p-4 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm"
+                  placeholder="email@example.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  required={!isLogin || isReset}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={countdown > 0}
+                  className={`px-5 rounded-2xl text-xs font-black uppercase tracking-tighter transition-all shadow-lg ${countdown > 0 ? "bg-slate-800 text-slate-500" : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20"}`}
+                >
+                  {countdown > 0 ? `${countdown}S` : "Send"}
+                </button>
+              </div>
             </div>
           )}
 
+          {/* OTP Input */}
           {(!isLogin || isReset) && isOtpSent && (
-            <input
-              className="w-full bg-slate-950 border-2 border-blue-500 p-3 rounded-xl outline-none animate-pulse text-sm"
-              placeholder="6-digit Code"
-              value={form.otp}
-              onChange={(e) => setForm({ ...form, otp: e.target.value })}
-              required
-            />
+            <div className="animate-pulse">
+              <input
+                className="w-full bg-blue-500/10 border-2 border-blue-500/50 p-4 rounded-2xl outline-none text-center font-black tracking-[1em] text-blue-400"
+                placeholder="000000"
+                value={form.otp}
+                onChange={(e) => setForm({ ...form, otp: e.target.value })}
+                required
+              />
+            </div>
           )}
 
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl outline-none focus:border-blue-500 transition-all text-sm"
-              placeholder="Password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-            >
-              {showPassword ? "👁️" : "🙈"}
-            </button>
+          {/* Password */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="w-full bg-slate-950/50 border border-slate-800 p-4 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors"
+              >
+                {showPassword ? "👁️" : "🙈"}
+              </button>
+            </div>
           </div>
 
+          {/* Confirm Password (註冊專用) */}
           {!isLogin && !isReset && (
-            <input
-              type={showPassword ? "text" : "password"}
-              className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl outline-none focus:border-blue-500 animate-in fade-in slide-in-from-top-2 text-sm"
-              placeholder="Confirm Password"
-              value={form.confirmPassword}
-              onChange={(e) =>
-                setForm({ ...form, confirmPassword: e.target.value })
-              }
-              required
-            />
+            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">
+                Confirm Password
+              </label>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="w-full bg-slate-950/50 border border-slate-800 p-4 rounded-2xl outline-none focus:border-blue-500 text-sm"
+                placeholder="確認新密碼"
+                value={form.confirmPassword}
+                onChange={(e) =>
+                  setForm({ ...form, confirmPassword: e.target.value })
+                }
+                required
+              />
+            </div>
           )}
 
-          <button className="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-900/20">
-            {isReset ? "Update Password" : isLogin ? "Sign In" : "Sign Up"}
+          {/* Submit Button */}
+          <button className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-white shadow-xl shadow-blue-900/30 transition-all active:scale-[0.98] mt-4">
+            {isReset
+              ? "UPDATE PASSWORD"
+              : isLogin
+                ? "ENTER DASHBOARD"
+                : "CREATE ACCOUNT"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-slate-500 text-sm">
-          {isLogin ? "No account?" : "Have account?"}
-          <span
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setIsReset(false);
-              setIsOtpSent(false);
-              setMsg({ text: "", type: "" });
-            }}
-            className="text-blue-400 cursor-pointer ml-1 font-bold hover:underline"
-          >
-            {isLogin ? "Create one" : "Log in"}
-          </span>
+        {/* 切換連結 */}
+        <div className="mt-8 text-center space-y-2">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+            {isLogin ? "No account?" : "Already a player?"}
+            <span
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setIsReset(false);
+                setIsOtpSent(false);
+                setMsg({ text: "", type: "" });
+              }}
+              className="text-blue-400 cursor-pointer ml-2 hover:text-blue-300 transition-colors"
+            >
+              {isLogin ? "REGISTER NOW" : "LOG IN"}
+            </span>
+          </p>
           {isLogin && (
             <span
               onClick={() => {
@@ -262,12 +308,12 @@ export default function AuthPage({ onLoginSuccess }) {
                 setIsOtpSent(false);
                 setMsg({ text: "", type: "" });
               }}
-              className="block mt-2 text-xs cursor-pointer hover:text-white"
+              className="block text-[10px] text-slate-600 cursor-pointer hover:text-slate-400 font-bold tracking-tighter"
             >
-              Forgot Password?
+              FORGOT PASSWORD?
             </span>
           )}
-        </p>
+        </div>
       </div>
     </div>
   );

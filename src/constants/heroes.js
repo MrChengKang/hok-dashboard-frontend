@@ -4,7 +4,7 @@ export const HERO_DATABASE = [
   { name: "韓信", initials: "HX", color: "from-red-500 to-red-700", defaultPos: "打野" },
   { name: "李白", initials: "LB", color: "from-orange-500 to-red-600", defaultPos: "打野" },
   { name: "百里玄策", initials: "XC", color: "from-rose-500 to-rose-700", defaultPos: "打野" },
-  { name: "猴子", initials: "HZ", color: "from-amber-600 to-orange-700", defaultPos: "打野" },
+  { name: "孫悟空", initials: "WK", color: "from-amber-600 to-orange-700", defaultPos: "打野" },
   { name: "雲中君", initials: "YZ", color: "from-cyan-400 to-blue-500", defaultPos: "打野" },
   { name: "裴擒虎", initials: "QH", color: "from-yellow-600 to-amber-700", defaultPos: "打野" },
   { name: "趙雲", initials: "ZY", color: "from-blue-500 to-indigo-700", defaultPos: "打野" },
@@ -31,7 +31,7 @@ export const HERO_DATABASE = [
   // --- 對抗路 (Clash) ---
   { name: "李信", initials: "LX", color: "from-orange-400 to-amber-600", defaultPos: "對抗路" },
   { name: "呂布", initials: "LB", color: "from-slate-600 to-purple-900", defaultPos: "對抗路" },
-  { name: "鎧", initials: "KAI", color: "from-blue-600 to-cyan-800", defaultPos: "對抗路" },
+  { name: "鎧", initials: "KAI", color: "from-blue-600 to-cyan-800", defaultPos: "打野" },
   { name: "亞瑟", initials: "YS", color: "from-blue-700 to-amber-500", defaultPos: "對抗路" },
   { name: "花木蘭", initials: "HM", color: "from-pink-600 to-orange-600", defaultPos: "對抗路" },
   { name: "關羽", initials: "GY", color: "from-green-700 to-emerald-900", defaultPos: "對抗路" },
