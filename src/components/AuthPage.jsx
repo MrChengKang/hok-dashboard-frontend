@@ -40,11 +40,14 @@ export default function AuthPage({ onLoginSuccess }) {
       return;
     }
     try {
-      const res = await fetch("http://localhost:8080/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email }),
-      });
+      const res = await fetch(
+        "https://hok-dashboard-backend.onrender.com/api/auth/send-otp",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: form.email }),
+        },
+      );
       if (res.ok) {
         setMsg({ text: "📩 驗證碼已發送", type: "success" });
         setIsOtpSent(true);
@@ -64,7 +67,7 @@ export default function AuthPage({ onLoginSuccess }) {
       if (isOtpSent) {
         try {
           const verifyRes = await fetch(
-            "http://localhost:8080/api/auth/verify-otp",
+            "https://hok-dashboard-backend.onrender.com/api/auth/verify-otp",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -90,7 +93,7 @@ export default function AuthPage({ onLoginSuccess }) {
     if (isReset) {
       try {
         const res = await fetch(
-          `http://localhost:8080/api/auth/reset-password`,
+          `https://hok-dashboard-backend.onrender.com/api/auth/reset-password`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -127,15 +130,18 @@ export default function AuthPage({ onLoginSuccess }) {
     // 4. 處理「一般登入」或「註冊」邏輯
     const path = isLogin ? "/login" : "/register";
     try {
-      const res = await fetch(`http://localhost:8080/api/auth${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: form.username,
-          password: form.password,
-          email: form.email, // 🔴 確保註冊時傳送 Email 給後端
-        }),
-      });
+      const res = await fetch(
+        `https://hok-dashboard-backend.onrender.com/api/auth${path}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: form.username,
+            password: form.password,
+            email: form.email, // 🔴 確保註冊時傳送 Email 給後端
+          }),
+        },
+      );
       const result = await res.text();
       if (result.toLowerCase().includes("success")) {
         setMsg({ text: `🎉 ${result}`, type: "success" });

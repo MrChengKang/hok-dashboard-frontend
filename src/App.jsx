@@ -156,7 +156,9 @@ function App() {
   // ==========================================
   const fetchMatches = () => {
     if (!currentUser) return;
-    fetch(`http://localhost:8080/api/matches?username=${currentUser}`)
+    fetch(
+      `https://hok-dashboard-backend.onrender.com/api/matches?username=${currentUser}`,
+    )
       .then((res) => res.json())
       .then((data) => setMatches(data))
       .catch((err) => console.error("抓取失敗:", err));
@@ -182,8 +184,8 @@ function App() {
     }
     const method = editingId ? "PUT" : "POST";
     const url = editingId
-      ? `http://localhost:8080/api/matches/${editingId}`
-      : "http://localhost:8080/api/matches";
+      ? `https://hok-dashboard-backend.onrender.com/api/matches/${editingId}`
+      : "https://hok-dashboard-backend.onrender.com/api/matches";
     try {
       const response = await fetch(url, {
         method,
@@ -209,7 +211,7 @@ function App() {
 
   const deleteMatch = (id) => {
     if (window.confirm("確定要刪除這場戰績嗎？")) {
-      fetch(`http://localhost:8080/api/matches/${id}`, {
+      fetch(`https://hok-dashboard-backend.onrender.com/api/matches/${id}`, {
         method: "DELETE",
       }).then(() => fetchMatches());
     }
