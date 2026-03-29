@@ -11,6 +11,11 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from "recharts";
 
 const formatRelativeTime = (dateValue, now) => {
@@ -44,8 +49,7 @@ const formatRelativeTime = (dateValue, now) => {
 };
 
 const ActivityHeatmap = ({ data }) => {
-  // 產生最近 14 天的日期
-  const days = [...Array(14)]
+  const days = [...Array(28)]
     .map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -57,13 +61,12 @@ const ActivityHeatmap = ({ data }) => {
     <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl mb-10">
       <h3 className="text-slate-400 text-xs font-black uppercase mb-4 tracking-widest flex items-center gap-2">
         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-        Battle Activity (Last 14 Days)
+        Battle Activity (Last 28 Days)
       </h3>
       <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
         {days.map((date) => {
           const dayData = data.find((d) => d.date === date);
           const count = dayData ? dayData.count : 0;
-
           const colorClass =
             count === 0
               ? "bg-slate-900"
@@ -72,7 +75,6 @@ const ActivityHeatmap = ({ data }) => {
                 : count <= 4
                   ? "bg-green-600"
                   : "bg-green-400";
-
           return (
             <div
               key={date}
@@ -92,7 +94,6 @@ const ActivityHeatmap = ({ data }) => {
     </div>
   );
 };
-
 function App() {
   // ==========================================
   // 1. useState (狀態定義都在最頂層)
@@ -271,6 +272,45 @@ function App() {
     return matchesSearch && matchesPosition;
   });
 
+  const calcRadarData = () => {
+    const targetData = filteredMatches.length > 0 ? filteredMatches : matches;
+    if (targetData.length === 0)
+      return [
+        { subject: "輸出", A: 0 },
+        { subject: "生存", A: 0 },
+        { subject: "參團", A: 0 },
+        { subject: "勝率", A: 0 },
+        { subject: "MVP", A: 0 },
+      ];
+
+    const stats = targetData.reduce(
+      (acc, curr) => {
+        const [k, d, a] = curr.kda.split("/").map(Number);
+        acc.k += k;
+        acc.d += d;
+        acc.a += a;
+        if (curr.result === "MVP") acc.mvp += 1;
+        if (curr.result === "Victory" || curr.result === "MVP") acc.wins += 1;
+        return acc;
+      },
+      { k: 0, d: 0, a: 0, mvp: 0, wins: 0 },
+    );
+
+    const count = targetData.length;
+    return [
+      { subject: "輸出", A: Math.min(100, (stats.k / count) * 15) },
+      { subject: "生存", A: Math.max(0, 100 - (stats.d / count) * 20) },
+      { subject: "參團", A: Math.min(100, (stats.a / count) * 12) },
+      {
+        subject: "勝率",
+        A: parseFloat(((stats.wins / count) * 100).toFixed(1)),
+      },
+      { subject: "MVP", A: Math.min(100, (stats.mvp / count) * 200) },
+    ];
+  };
+
+  const radarData = calcRadarData();
+
   const totalPages = Math.ceil(filteredMatches.length / itemsPerPage);
   const currentItems = filteredMatches.slice(
     (currentPage - 1) * itemsPerPage,
@@ -406,14 +446,15 @@ function App() {
         <ActivityHeatmap data={heatmapData} />
       </div>
 
+      {/* 🔴 圖表分析區域：走勢圖與雷達圖並排 (1.5 版本核心) */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-        {/* 最近 7 場 KDA 走勢圖 */}
-        <div className="lg:col-span-2 bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl h-[300px]">
+        {/* 左側：最近 7 場 KDA 走勢圖 (佔 2 欄) */}
+        <div className="lg:col-span-2 bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl h-[380px]">
           <h3 className="text-slate-400 text-xs font-black uppercase mb-6 flex items-center gap-2 tracking-widest">
-            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-            Recent Performance (KDA Trend)
+            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+            Performance Trend (KDA)
           </h3>
-          <div className="w-full h-56">
+          <div className="w-full h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trendData}>
                 <defs>
@@ -461,39 +502,77 @@ function App() {
           </div>
         </div>
 
-        {/* 分路熱度分析 (小提示) */}
-        <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl flex flex-col justify-between">
+        {/* 右側：戰力雷達圖 (佔 1 欄) */}
+        <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl h-[380px] flex flex-col items-center">
+          <h3 className="text-slate-400 text-xs font-black uppercase mb-4 tracking-widest self-start">
+            Battle Style Analysis
+          </h3>
+          <div className="w-full h-full pb-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                <PolarGrid stroke="#334155" />
+                <PolarAngleAxis
+                  dataKey="subject"
+                  tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: "bold" }}
+                />
+                {/* 隱藏半徑軸數字，讓圖表更乾淨 */}
+                <PolarRadiusAxis
+                  angle={30}
+                  domain={[0, 100]}
+                  tick={false}
+                  axisLine={false}
+                />
+                <Radar
+                  name={currentUser}
+                  dataKey="A"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
+                  fillOpacity={0.4}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+          {/* 雷達圖底部的小提示 */}
+          <div className="w-full pt-4 border-t border-slate-700/50 text-center">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+              Filtered by:{" "}
+              <span className="text-blue-400">
+                {selectedPosition || "All Positions"}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 🔴 Stats Summary (原有的總結文字) */}
+      <div className="max-w-7xl mx-auto mb-10">
+        <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
-            <h3 className="text-slate-400 text-xs font-black uppercase mb-4 tracking-widest">
-              Stats Summary
+            <h3 className="text-slate-400 text-xs font-black uppercase mb-2 tracking-widest">
+              Quick Insight
             </h3>
-            <p className="text-slate-300 text-sm leading-relaxed">
+            <p className="text-slate-300 text-sm">
               你在{" "}
               <span className="text-blue-400 font-bold">
                 {selectedPosition || "所有分路"}
               </span>{" "}
               的表現
-              {winRate > 60 ? "非常強勢！🔥" : "還有提升空間，加油！⚔️"}
+              {winRate > 60
+                ? " 非常強勢！保持這個節奏。🔥"
+                : " 還有提升空間，建議多看錄像覆盤。⚔️"}
             </p>
           </div>
-
-          <div className="mt-4 pt-4 border-t border-slate-700/50">
-            <div className="flex justify-between items-end">
-              <div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase">
-                  Best Role
-                </p>
-                <p className="text-xl font-black text-white">
-                  {Object.keys(positionStats).reduce(
-                    (a, b) =>
-                      positionStats[a]?.wins > positionStats[b]?.wins ? a : b,
-                    "N/A",
-                  )}
-                </p>
-              </div>
-              <div className="text-right text-blue-400 font-black text-xs">
+          <div className="flex gap-8 items-center">
+            <div className="text-right">
+              <p className="text-[10px] text-slate-500 font-bold uppercase">
+                Best Role
+              </p>
+              <p className="text-xl font-black text-white">{bestRole}</p>
+            </div>
+            <div className="px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl">
+              <p className="text-blue-400 font-black text-[10px]">
                 RANKED PRO ANALYTICS
-              </div>
+              </p>
             </div>
           </div>
         </div>
