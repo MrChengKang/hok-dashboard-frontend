@@ -43,6 +43,56 @@ const formatRelativeTime = (dateValue, now) => {
   return `${Math.floor(diffInHours / 24)}d ago`;
 };
 
+const ActivityHeatmap = ({ data }) => {
+  // 產生最近 14 天的日期
+  const days = [...Array(14)]
+    .map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toISOString().split("T")[0];
+    })
+    .reverse();
+
+  return (
+    <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl mb-10">
+      <h3 className="text-slate-400 text-xs font-black uppercase mb-4 tracking-widest flex items-center gap-2">
+        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+        Battle Activity (Last 14 Days)
+      </h3>
+      <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+        {days.map((date) => {
+          const dayData = data.find((d) => d.date === date);
+          const count = dayData ? dayData.count : 0;
+
+          const colorClass =
+            count === 0
+              ? "bg-slate-900"
+              : count <= 2
+                ? "bg-green-900"
+                : count <= 4
+                  ? "bg-green-600"
+                  : "bg-green-400";
+
+          return (
+            <div
+              key={date}
+              className="flex flex-col items-center gap-1 min-w-[32px]"
+            >
+              <div
+                title={`${date}: ${count} matches`}
+                className={`w-8 h-8 rounded-md ${colorClass} transition-all hover:scale-110 cursor-help border border-white/5`}
+              />
+              <span className="text-[8px] text-slate-500 font-bold">
+                {date.split("-")[2]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 function App() {
   // ==========================================
   // 1. useState (狀態定義都在最頂層)
@@ -58,7 +108,7 @@ function App() {
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
+  const itemsPerPage = 5;
 
   const [newMatchData, setNewMatchData] = useState({
     hero: "",
@@ -163,6 +213,19 @@ function App() {
       }).then(() => fetchMatches());
     }
   };
+
+  const heatmapData = matches.reduce((acc, match) => {
+    const date = new Date(match.createdAt || match.created_at)
+      .toISOString()
+      .split("T")[0];
+    const existing = acc.find((item) => item.date === date);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      acc.push({ date, count: 1 });
+    }
+    return acc;
+  }, []);
 
   // ==========================================
   // 4. 條件渲染 (在所有 Hook 之後)
@@ -337,6 +400,10 @@ function App() {
           </p>
           <span className="text-4xl font-black text-yellow-500">{avgKda}</span>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto">
+        <ActivityHeatmap data={heatmapData} />
       </div>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
